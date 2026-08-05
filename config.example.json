@@ -1,0 +1,7 @@
+{
+  "access_token": "把你的_accessToken_粘贴到这里",
+  "account_name": "你的昵称",
+  "uid": "可选，本地 auth 里的 account.uid",
+  "domain": "www.codebuddy.cn",
+  "enterprise_id": ""
+}

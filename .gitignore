@@ -1,0 +1,16 @@
+# 含登录态，禁止提交到公开仓库
+config.json
+
+# Python
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
