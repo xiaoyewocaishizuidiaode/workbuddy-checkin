@@ -15,6 +15,14 @@
       "refresh": "",
       "session": "",
       "user_id": "用户数字ID"
+    },
+    {
+      "name": "hcnsec",
+      "base_url": "https://api.hcnsec.cn",
+      "access_token": "系统访问令牌",
+      "refresh": "",
+      "session": "",
+      "user_id": "用户数字ID"
     }
   ]
 }

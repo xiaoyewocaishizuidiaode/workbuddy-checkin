@@ -5,6 +5,7 @@ New API 多站点每日签到
 支持站点示例：
   - https://api.chshapi.org
   - https://sudobug.top
+  - https://api.hcnsec.cn
 
 鉴权（新版 New API）：
   1) Cookie new_api_refresh -> POST /api/user/auth/refresh
@@ -87,7 +88,7 @@ def load_sites() -> list[dict[str, Any]]:
       1) 环境变量 NEWAPI_SITES = JSON 数组
       2) config.json 的 sites 数组
       3) config.json 单站点对象（兼容旧格式）
-      4) 环境变量 CHSHAPI_* / SUDOBUG_*
+      4) 环境变量 CHSHAPI_* / SUDOBUG_* / HCNSEC_*
     """
     sites: list[dict[str, Any]] = []
 
@@ -127,6 +128,7 @@ def load_sites() -> list[dict[str, Any]]:
         for prefix, url, name in (
             ("CHSHAPI", "https://api.chshapi.org", "chshapi"),
             ("SUDOBUG", "https://sudobug.top", "sudobug"),
+            ("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
         ):
             s = _site_from_prefix(prefix, url, name)
             if s:
@@ -136,6 +138,7 @@ def load_sites() -> list[dict[str, Any]]:
     overrides = {
         "chshapi": _site_from_prefix("CHSHAPI", "https://api.chshapi.org", "chshapi"),
         "sudobug": _site_from_prefix("SUDOBUG", "https://sudobug.top", "sudobug"),
+        "hcnsec": _site_from_prefix("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
     }
     by_name = {s["name"]: s for s in sites}
     for name, ov in overrides.items():
@@ -481,7 +484,7 @@ def request_with_user_header(
 def main() -> int:
     sites = load_sites()
     if not sites:
-        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_* / NEWAPI_SITES")
+        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_*/HCNSEC_* / NEWAPI_SITES")
         return 1
 
     log(f"共 {len(sites)} 个站点待签到: {', '.join(s['name'] for s in sites)}")
