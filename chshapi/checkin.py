@@ -282,27 +282,40 @@ def checkin() -> bool:
     if not ensure_access_token(client):
         return False
 
-    # 尽量生成长期令牌，方便 GitHub Actions（避免 refresh 轮换麻烦）
-    long_token = try_issue_long_token(client)
-    if long_token:
-        cfg_path_data: dict[str, Any] = {}
-        if _CONFIG_FILE.exists():
-            try:
-                cfg_path_data = json.loads(_CONFIG_FILE.read_text(encoding="utf-8"))
-            except Exception:
-                cfg_path_data = {}
-        cfg_path_data["access_token"] = long_token
-        if client.refresh:
-            cfg_path_data["refresh"] = client.refresh
-        cfg_path_data["base_url"] = client.base
+    # 仅在「靠 refresh 登录且本地还没有长期 token」时生成一次，避免每次轮换作废 Secrets
+    had_access_env = bool(os.environ.get("CHSHAPI_ACCESS_TOKEN", "").strip())
+    had_access_cfg = False
+    if _CONFIG_FILE.exists():
         try:
-            _CONFIG_FILE.write_text(
-                json.dumps(cfg_path_data, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+            had_access_cfg = bool(
+                (json.loads(_CONFIG_FILE.read_text(encoding="utf-8")).get("access_token") or "").strip()
             )
-            log("   已写入 config.json 的 access_token（可用于 GitHub Secrets: CHSHAPI_ACCESS_TOKEN）")
-        except Exception as e:
-            log(f"   [!] 保存长期 token 失败: {e}")
+        except Exception:
+            pass
+    if client.refresh and not had_access_env and not had_access_cfg:
+        long_token = try_issue_long_token(client)
+        if long_token:
+            client.access_token = long_token
+            cfg_path_data: dict[str, Any] = {}
+            if _CONFIG_FILE.exists():
+                try:
+                    cfg_path_data = json.loads(_CONFIG_FILE.read_text(encoding="utf-8"))
+                except Exception:
+                    cfg_path_data = {}
+            cfg_path_data["access_token"] = long_token
+            if client.refresh:
+                cfg_path_data["refresh"] = client.refresh
+            cfg_path_data["base_url"] = client.base
+            try:
+                _CONFIG_FILE.write_text(
+                    json.dumps(cfg_path_data, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                log("   已写入 config.json 的 access_token（可用于 GitHub Secrets: CHSHAPI_ACCESS_TOKEN）")
+            except Exception as e:
+                log(f"   [!] 保存长期 token 失败: {e}")
+    else:
+        log("步骤 1.5/4: 跳过重新生成长期 token（已有配置，避免把旧 token 作废）")
 
     log("步骤 2/4: GET /api/user/self 验证登录 ...")
     me, _ = client.request("GET", "/api/user/self")
