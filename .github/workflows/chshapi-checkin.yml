@@ -1,0 +1,32 @@
+name: chshapi Daily Checkin
+
+on:
+  schedule:
+    # 每天北京时间 08:00 = UTC 00:00
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  checkin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run chshapi checkin
+        env:
+          CHSHAPI_BASE_URL: ${{ secrets.CHSHAPI_BASE_URL }}
+          CHSHAPI_ACCESS_TOKEN: ${{ secrets.CHSHAPI_ACCESS_TOKEN }}
+          CHSHAPI_REFRESH: ${{ secrets.CHSHAPI_REFRESH }}
+          CHSHAPI_SESSION: ${{ secrets.CHSHAPI_SESSION }}
+        run: |
+          if [ -z "$CHSHAPI_BASE_URL" ]; then
+            export CHSHAPI_BASE_URL="https://api.chshapi.org"
+          fi
+          python chshapi/checkin.py

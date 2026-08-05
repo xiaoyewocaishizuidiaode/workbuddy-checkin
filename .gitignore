@@ -1,5 +1,6 @@
 # 含登录态，禁止提交到公开仓库
 config.json
+chshapi/config.json
 
 # Python
 __pycache__/

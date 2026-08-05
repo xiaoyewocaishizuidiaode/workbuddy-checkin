@@ -9,7 +9,9 @@
 | `checkin.py` | 签到脚本 |
 | `config.json` | 仅本地使用（已加入 `.gitignore`，**不要提交**） |
 | `config.example.json` | 配置模板 |
-| `.github/workflows/checkin.yml` | GitHub Actions 定时任务（每天北京时间 09:05） |
+| `.github/workflows/checkin.yml` | WorkBuddy：GitHub Actions（每天北京时间 09:05） |
+| `chshapi/` | New API 站点 [api.chshapi.org](https://api.chshapi.org/profile) 每日打卡 |
+| `.github/workflows/chshapi-checkin.yml` | chshapi：每天北京时间 08:00 |
 
 ## 1. 获取 accessToken
 

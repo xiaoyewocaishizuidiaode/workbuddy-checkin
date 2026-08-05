@@ -1,0 +1,6 @@
+{
+  "base_url": "https://api.chshapi.org",
+  "refresh": "粘贴 Cookie 里 new_api_refresh 的完整值",
+  "session": "可选，session 的值",
+  "access_token": ""
+}
