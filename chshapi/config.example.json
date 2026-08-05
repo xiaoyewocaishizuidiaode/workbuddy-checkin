@@ -1,6 +1,20 @@
 {
-  "base_url": "https://api.chshapi.org",
-  "refresh": "粘贴 Cookie 里 new_api_refresh 的完整值",
-  "session": "可选，session 的值",
-  "access_token": ""
+  "sites": [
+    {
+      "name": "chshapi",
+      "base_url": "https://api.chshapi.org",
+      "access_token": "长期系统访问令牌（推荐）",
+      "refresh": "",
+      "session": "",
+      "user_id": ""
+    },
+    {
+      "name": "sudobug",
+      "base_url": "https://sudobug.top",
+      "access_token": "系统访问令牌",
+      "refresh": "",
+      "session": "",
+      "user_id": "用户数字ID"
+    }
+  ]
 }

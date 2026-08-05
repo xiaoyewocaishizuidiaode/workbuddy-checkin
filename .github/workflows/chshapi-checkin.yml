@@ -1,4 +1,4 @@
-name: chshapi Daily Checkin
+name: NewAPI Daily Checkin
 
 on:
   schedule:
@@ -9,7 +9,7 @@ on:
 jobs:
   checkin:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,14 +19,22 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run chshapi checkin
+      - name: Run New API checkin (multi-site)
         env:
+          # 可选：整份 JSON 覆盖
+          NEWAPI_SITES: ${{ secrets.NEWAPI_SITES }}
+          # chshapi
           CHSHAPI_BASE_URL: ${{ secrets.CHSHAPI_BASE_URL }}
           CHSHAPI_ACCESS_TOKEN: ${{ secrets.CHSHAPI_ACCESS_TOKEN }}
           CHSHAPI_REFRESH: ${{ secrets.CHSHAPI_REFRESH }}
           CHSHAPI_SESSION: ${{ secrets.CHSHAPI_SESSION }}
+          # sudobug
+          SUDOBUG_BASE_URL: ${{ secrets.SUDOBUG_BASE_URL }}
+          SUDOBUG_ACCESS_TOKEN: ${{ secrets.SUDOBUG_ACCESS_TOKEN }}
+          SUDOBUG_USER_ID: ${{ secrets.SUDOBUG_USER_ID }}
+          SUDOBUG_REFRESH: ${{ secrets.SUDOBUG_REFRESH }}
+          SUDOBUG_SESSION: ${{ secrets.SUDOBUG_SESSION }}
         run: |
-          if [ -z "$CHSHAPI_BASE_URL" ]; then
-            export CHSHAPI_BASE_URL="https://api.chshapi.org"
-          fi
+          if [ -z "$CHSHAPI_BASE_URL" ]; then export CHSHAPI_BASE_URL="https://api.chshapi.org"; fi
+          if [ -z "$SUDOBUG_BASE_URL" ]; then export SUDOBUG_BASE_URL="https://sudobug.top"; fi
           python chshapi/checkin.py
