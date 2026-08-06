@@ -34,14 +34,21 @@ jobs:
           SUDOBUG_USER_ID: ${{ secrets.SUDOBUG_USER_ID }}
           SUDOBUG_REFRESH: ${{ secrets.SUDOBUG_REFRESH }}
           SUDOBUG_SESSION: ${{ secrets.SUDOBUG_SESSION }}
-          # hcnsec
+          # hcnsec（账号1）
           HCNSEC_BASE_URL: ${{ secrets.HCNSEC_BASE_URL }}
           HCNSEC_ACCESS_TOKEN: ${{ secrets.HCNSEC_ACCESS_TOKEN }}
           HCNSEC_USER_ID: ${{ secrets.HCNSEC_USER_ID }}
           HCNSEC_REFRESH: ${{ secrets.HCNSEC_REFRESH }}
           HCNSEC_SESSION: ${{ secrets.HCNSEC_SESSION }}
+          # hcnsec（账号2）
+          HCNSEC2_BASE_URL: ${{ secrets.HCNSEC2_BASE_URL }}
+          HCNSEC2_ACCESS_TOKEN: ${{ secrets.HCNSEC2_ACCESS_TOKEN }}
+          HCNSEC2_USER_ID: ${{ secrets.HCNSEC2_USER_ID }}
+          HCNSEC2_REFRESH: ${{ secrets.HCNSEC2_REFRESH }}
+          HCNSEC2_SESSION: ${{ secrets.HCNSEC2_SESSION }}
         run: |
           if [ -z "$CHSHAPI_BASE_URL" ]; then export CHSHAPI_BASE_URL="https://api.chshapi.org"; fi
           if [ -z "$SUDOBUG_BASE_URL" ]; then export SUDOBUG_BASE_URL="https://sudobug.top"; fi
           if [ -z "$HCNSEC_BASE_URL" ]; then export HCNSEC_BASE_URL="https://api.hcnsec.cn"; fi
+          if [ -z "$HCNSEC2_BASE_URL" ]; then export HCNSEC2_BASE_URL="https://api.hcnsec.cn"; fi
           python chshapi/checkin.py

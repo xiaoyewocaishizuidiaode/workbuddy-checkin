@@ -7,8 +7,9 @@
 | chshapi | https://api.chshapi.org | 新版鉴权，长期 access_token |
 | sudobug | https://sudobug.top | 旧版，需 access_token + user_id |
 | hcnsec | https://api.hcnsec.cn | 旧版，需 access_token + user_id |
+| hcnsec2 | https://api.hcnsec.cn | 同站第二账号，Secrets 用 `HCNSEC2_*` |
 
-均已确认 `checkin_enabled=true`。
+均已确认 `checkin_enabled=true`。同一站点可配多个账号（如 hcnsec / hcnsec2）。
 
 ## 获取凭证（每个站各做一次）
 
@@ -34,7 +35,8 @@ python chshapi/checkin.py
 |--------|------|
 | `CHSHAPI_ACCESS_TOKEN` | chshapi |
 | `SUDOBUG_ACCESS_TOKEN` / `SUDOBUG_USER_ID` | sudobug |
-| `HCNSEC_ACCESS_TOKEN` / `HCNSEC_USER_ID` | hcnsec |
+| `HCNSEC_ACCESS_TOKEN` / `HCNSEC_USER_ID` | hcnsec 账号1 |
+| `HCNSEC2_ACCESS_TOKEN` / `HCNSEC2_USER_ID` | hcnsec 账号2 |
 | `NEWAPI_SITES` | 可选，整份 JSON 覆盖 |
 
 定时：每天北京时间 **08:00**

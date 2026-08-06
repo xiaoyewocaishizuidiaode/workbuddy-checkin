@@ -88,9 +88,16 @@ def load_sites() -> list[dict[str, Any]]:
       1) 环境变量 NEWAPI_SITES = JSON 数组
       2) config.json 的 sites 数组
       3) config.json 单站点对象（兼容旧格式）
-      4) 环境变量 CHSHAPI_* / SUDOBUG_* / HCNSEC_*
+      4) 环境变量 CHSHAPI_* / SUDOBUG_* / HCNSEC_* / HCNSEC2_*
     """
     sites: list[dict[str, Any]] = []
+    # 同站多账号：HCNSEC2 等与主账号并列签到
+    _PREFIX_SITES = (
+        ("CHSHAPI", "https://api.chshapi.org", "chshapi"),
+        ("SUDOBUG", "https://sudobug.top", "sudobug"),
+        ("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
+        ("HCNSEC2", "https://api.hcnsec.cn", "hcnsec2"),
+    )
 
     env_sites = os.environ.get("NEWAPI_SITES", "").strip()
     if env_sites:
@@ -125,20 +132,14 @@ def load_sites() -> list[dict[str, Any]]:
             sites.append(s)
 
     if not sites:
-        for prefix, url, name in (
-            ("CHSHAPI", "https://api.chshapi.org", "chshapi"),
-            ("SUDOBUG", "https://sudobug.top", "sudobug"),
-            ("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
-        ):
+        for prefix, url, name in _PREFIX_SITES:
             s = _site_from_prefix(prefix, url, name)
             if s:
                 sites.append(s)
 
     # 环境变量可覆盖同名站点的 token（方便 GitHub Secrets）
     overrides = {
-        "chshapi": _site_from_prefix("CHSHAPI", "https://api.chshapi.org", "chshapi"),
-        "sudobug": _site_from_prefix("SUDOBUG", "https://sudobug.top", "sudobug"),
-        "hcnsec": _site_from_prefix("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
+        name: _site_from_prefix(prefix, url, name) for prefix, url, name in _PREFIX_SITES
     }
     by_name = {s["name"]: s for s in sites}
     for name, ov in overrides.items():
@@ -484,7 +485,7 @@ def request_with_user_header(
 def main() -> int:
     sites = load_sites()
     if not sites:
-        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_*/HCNSEC_* / NEWAPI_SITES")
+        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_*/HCNSEC_*/HCNSEC2_* / NEWAPI_SITES")
         return 1
 
     log(f"共 {len(sites)} 个站点待签到: {', '.join(s['name'] for s in sites)}")
