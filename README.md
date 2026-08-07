@@ -68,7 +68,9 @@ python checkin.py
 
 仓库 → **Actions** → **WorkBuddy Daily Checkin** → **Run workflow**。
 
-日志出现 `[ok] 签到成功` 或 `今日已签到` 即成功。之后每天北京时间 **09:05** 自动跑（cron：`5 1 * * *` UTC）。
+日志出现 `[ok] 签到成功` 或 `今日已签到` 即成功。
+
+> **建议**：GitHub 自带 `schedule` 经常延迟。推荐用免费的 [cron-job.org](https://cron-job.org) 每天准时触发工作流，步骤见 [docs/cron-job-org-setup.md](docs/cron-job-org-setup.md)（可用 `scripts/setup_cronjob_org.py` 一键创建）。
 
 ### 3.4 Token 过期后
 
@@ -76,7 +78,7 @@ python checkin.py
 
 ## 4. 额度说明
 
-GitHub Free 私有仓每月约有 **2000 Actions 分钟**；本任务每天约 1～2 分钟，完全够用。公开仓标准 runner 仍免费，但 token 仍须放 Secrets，切勿写进代码。
+GitHub Free 私有仓每月约有 **2000 Actions 分钟**；本任务每天约 1～2 分钟，完全够用。当前仓库若为**公开仓**，标准 Linux runner 通常不占这笔额度。token 仍须放 Secrets，切勿写进代码。
 
 ## 安全提醒
 

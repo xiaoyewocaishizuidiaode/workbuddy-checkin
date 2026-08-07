@@ -1,5 +1,7 @@
 name: NewAPI Daily Checkin
 
+# 推荐用 cron-job.org 每天触发 workflow_dispatch（见 docs/cron-job-org-setup.md）
+# schedule 仅作备份，GitHub 自带定时经常延迟
 on:
   schedule:
     # 每天北京时间 08:00 = UTC 00:00
