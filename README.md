@@ -9,9 +9,9 @@
 | `checkin.py` | 签到脚本 |
 | `config.json` | 仅本地使用（已加入 `.gitignore`，**不要提交**） |
 | `config.example.json` | 配置模板 |
-| `.github/workflows/checkin.yml` | WorkBuddy：GitHub Actions（每天北京时间 09:05） |
-| `chshapi/` | New API 站点 [api.chshapi.org](https://api.chshapi.org/profile) 每日打卡 |
-| `.github/workflows/chshapi-checkin.yml` | chshapi：每天北京时间 08:00 |
+| `.github/workflows/checkin.yml` | WorkBuddy：08:00 主签到 + 09:00 看门狗（备份 schedule） |
+| `chshapi/` | New API 多站点每日打卡（含 hcnsec 双账号等） |
+| `.github/workflows/chshapi-checkin.yml` | NewAPI：08:00 主签到 + 09:00 看门狗 |
 
 ## 1. 获取 accessToken
 
@@ -70,7 +70,7 @@ python checkin.py
 
 日志出现 `[ok] 签到成功` 或 `今日已签到` 即成功。
 
-> **建议**：GitHub 自带 `schedule` 经常延迟。推荐用免费的 [cron-job.org](https://cron-job.org) 每天准时触发工作流，步骤见 [docs/cron-job-org-setup.md](docs/cron-job-org-setup.md)（可用 `scripts/setup_cronjob_org.py` 一键创建）。
+> **建议**：GitHub 自带 `schedule` 经常延迟。推荐用 [cron-job.org](https://cron-job.org)：**08:00 主签到 + 09:00 看门狗补签**，见 [docs/cron-job-org-setup.md](docs/cron-job-org-setup.md)。
 
 ### 3.4 Token 过期后
 

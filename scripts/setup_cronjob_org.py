@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-用 cron-job.org API 创建两条「触发 GitHub Actions」的定时任务。
+用 cron-job.org API 创建 / 更新「触发 GitHub Actions」的定时任务。
+
+策略：
+  08:00  主签到（WorkBuddy + NewAPI）
+  09:00  看门狗补签（再触发一次；已签到会被脚本当成成功）
 
 前置：
-  1) 在 https://cron-job.org 注册，Settings 里生成 API Key
-  2) 创建 GitHub PAT（Fine-grained：目标仓库 Actions=Read and write；或 Classic：repo+workflow）
+  1) https://cron-job.org Settings 生成 API Key
+  2) GitHub PAT（Fine-grained：目标仓库 Actions=Read and write）
 
 用法（PowerShell）：
-  $env:CRONJOB_ORG_API_KEY = "你的_cron-job.org_API_Key"
-  $env:GITHUB_PAT = "你的_GitHub_PAT"
+  $env:CRONJOB_ORG_API_KEY = "..."
+  $env:GITHUB_PAT = "..."
   python scripts/setup_cronjob_org.py
-
-可选环境变量：
-  GITHUB_OWNER   默认 xiaoyewocaishizuidiaode
-  GITHUB_REPO    默认 workbuddy-checkin
-  TIMEZONE       默认 Asia/Shanghai
 """
 from __future__ import annotations
 
@@ -29,6 +28,14 @@ OWNER = os.environ.get("GITHUB_OWNER", "xiaoyewocaishizuidiaode").strip()
 REPO = os.environ.get("GITHUB_REPO", "workbuddy-checkin").strip()
 TZ = os.environ.get("TIMEZONE", "Asia/Shanghai").strip()
 
+# (title, workflow_file, hour, minute)
+JOB_SPECS = [
+    ("WorkBuddy Daily Checkin (external)", "checkin.yml", 8, 0),
+    ("NewAPI Daily Checkin (external)", "chshapi-checkin.yml", 8, 0),
+    ("WorkBuddy Watchdog (external)", "checkin.yml", 9, 0),
+    ("NewAPI Watchdog (external)", "chshapi-checkin.yml", 9, 0),
+]
+
 
 def api(method: str, path: str, token: str, payload: dict | None = None) -> dict:
     data = None if payload is None else json.dumps(payload).encode("utf-8")
@@ -39,7 +46,7 @@ def api(method: str, path: str, token: str, payload: dict | None = None) -> dict
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-            "User-Agent": "workbuddy-cron-setup/1.0",
+            "User-Agent": "workbuddy-cron-setup/1.1",
         },
     )
     try:
@@ -108,12 +115,7 @@ def main() -> int:
     listed = api("GET", "/jobs", cron_key)
     existing = listed.get("jobs") or []
 
-    specs = [
-        ("WorkBuddy Daily Checkin (external)", "checkin.yml", 9, 5),
-        ("NewAPI Daily Checkin (external)", "chshapi-checkin.yml", 8, 0),
-    ]
-
-    for title, wf, hour, minute in specs:
+    for title, wf, hour, minute in JOB_SPECS:
         payload = make_job(title, wf, hour, minute, github_pat)
         found = find_existing(existing, title)
         if found:
@@ -124,7 +126,9 @@ def main() -> int:
             result = api("PUT", "/jobs", cron_key, payload)
             print(f"created title={title} @ {hour:02d}:{minute:02d} {TZ} resp={result}")
 
-    print("\n完成。可在 https://console.cron-job.org/ 查看任务，点 Run now 试跑。")
+    print("\n完成。可在 https://console.cron-job.org/ 查看：")
+    print("  08:00 主签到 ×2")
+    print("  09:00 看门狗补签 ×2")
     print(f"GitHub Actions: https://github.com/{OWNER}/{REPO}/actions")
     return 0
 
