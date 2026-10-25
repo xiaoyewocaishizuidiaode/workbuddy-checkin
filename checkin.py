@@ -17,8 +17,12 @@ from pathlib import Path
 
 # ─── 配置 ───────────────────────────────────────────────
 API_BASE = "https://www.codebuddy.cn"
-CHECKIN_STATUS_URL = f"{API_BASE}/v2/billing/meter/checkin-status"
+CHECKIN_STATUS_URLS = (
+    f"{API_BASE}/v2/billing/meter/checkin-activity-status",
+    f"{API_BASE}/v2/billing/meter/checkin-status",
+)
 DAILY_CHECKIN_URL = f"{API_BASE}/v2/billing/meter/daily-checkin"
+TOKEN_REFRESH_URL = "https://copilot.tencent.com/v2/plugin/auth/token/refresh"
 REQUEST_TIMEOUT = 20
 
 _WIN_AUTH_FILE = (
@@ -59,6 +63,7 @@ def _creds_from_env() -> dict | None:
         return None
     return {
         "access_token": token,
+        "refresh_token": os.environ.get("WORKBUDDY_REFRESH_TOKEN", "").strip() or None,
         "account_name": os.environ.get("WORKBUDDY_ACCOUNT_NAME", "环境变量账号"),
         "uid": os.environ.get("WORKBUDDY_UID", "").strip() or None,
         "domain": os.environ.get("WORKBUDDY_DOMAIN", "www.codebuddy.cn").strip(),
@@ -76,6 +81,8 @@ def _creds_from_config() -> dict | None:
             return None
         return {
             "access_token": token,
+            "refresh_token": (data.get("refresh_token") or data.get("refreshToken") or "").strip()
+            or None,
             "account_name": data.get("account_name") or "云端账号",
             "uid": (data.get("uid") or "").strip() or None,
             "domain": (data.get("domain") or "www.codebuddy.cn").strip(),
@@ -119,6 +126,7 @@ def load_credentials() -> dict | None:
         account = data.get("account") or {}
         creds = {
             "access_token": token,
+            "refresh_token": (data.get("auth", {}).get("refreshToken") or "").strip() or None,
             "account_name": account.get("nickname") or f"{label}账号",
             "uid": (account.get("uid") or "").strip() or None,
             "domain": (data.get("auth", {}).get("domain") or "www.codebuddy.cn").strip(),
@@ -149,6 +157,48 @@ def _build_headers(creds: dict) -> dict[str, str]:
         headers["X-Enterprise-Id"] = eid
         headers["X-Tenant-Id"] = eid
     return headers
+
+
+def _try_refresh_token(creds: dict) -> bool:
+    refresh = (creds.get("refresh_token") or "").strip()
+    if not refresh:
+        return False
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-Refresh-Token": refresh,
+        "X-Auth-Refresh-Source": "workbuddy",
+        "User-Agent": "WorkBuddy-Checkin/1.2",
+    }
+    eid = creds.get("enterprise_id")
+    if eid:
+        headers["X-Enterprise-Id"] = eid
+    req = urllib.request.Request(
+        TOKEN_REFRESH_URL,
+        data=b"{}",
+        method="POST",
+        headers=headers,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
+            payload = json.loads(resp.read().decode("utf-8") or "{}")
+    except urllib.error.HTTPError as e:
+        log(f"   Token 刷新 HTTP {e.code}: {e.reason}")
+        return False
+    except Exception as e:
+        log(f"   Token 刷新失败: {e}")
+        return False
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+    new_access = (data.get("accessToken") or data.get("access_token") or "").strip()
+    if not new_access:
+        log(f"   Token 刷新无 accessToken: {str(payload)[:200]}")
+        return False
+    creds["access_token"] = new_access
+    new_refresh = (data.get("refreshToken") or data.get("refresh_token") or "").strip()
+    if new_refresh:
+        creds["refresh_token"] = new_refresh
+    log("   access_token 已刷新")
+    return True
 
 
 def _request_json(url: str, creds: dict, method: str = "POST") -> dict | None:
@@ -222,18 +272,33 @@ def checkin() -> bool:
         return False
 
     log("步骤 2/3: 查询签到状态...")
-    status_raw = _request_json(CHECKIN_STATUS_URL, creds, method="POST")
+    status_raw = None
+    for status_url in CHECKIN_STATUS_URLS:
+        status_raw = _request_json(status_url, creds, method="POST")
+        if status_raw is not None:
+            break
     if already_checked_in(status_raw):
         log("[ok] 今日已签到，无需重复领取。")
         return True
     status = unwrap_data(status_raw)
     if status is None:
-        log("[!] 签到状态查询失败，继续尝试领取...")
+        if creds.get("refresh_token") and _try_refresh_token(creds):
+            status_raw = None
+            for status_url in CHECKIN_STATUS_URLS:
+                status_raw = _request_json(status_url, creds, method="POST")
+                if status_raw is not None:
+                    break
+            if already_checked_in(status_raw):
+                log("[ok] 今日已签到，无需重复领取。")
+                return True
+            status = unwrap_data(status_raw)
+        if status is None:
+            log("[!] 签到状态查询失败，继续尝试领取...")
     else:
         log(
             f"   active={status.get('active')}, "
-            f"today_checked_in={status.get('today_checked_in')}, "
-            f"streak_days={status.get('streak_days')}"
+            f"today_checked_in={status.get('today_checked_in') or status.get('todayCheckedIn')}, "
+            f"streak_days={status.get('streak_days') or status.get('streakDays')}"
         )
 
     log("步骤 3/3: 领取签到积分...")
@@ -265,4 +330,15 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-    sys.exit(0 if checkin() else 1)
+    ok = checkin()
+    if not ok:
+        try:
+            from notify import send_failure_mail
+
+            send_failure_mail(
+                "WorkBuddy 签到失败",
+                "WorkBuddy 每日签到失败，请检查 token 是否过期或查看 Actions 日志。",
+            )
+        except Exception as e:
+            log(f"[!] 失败邮件未发送: {e}")
+    sys.exit(0 if ok else 1)

@@ -28,7 +28,10 @@ from typing import Any
 
 REQUEST_TIMEOUT = 20
 _CONFIG_FILE = Path(__file__).resolve().parent / "config.json"
+_ROOT = Path(__file__).resolve().parent.parent
 _TZ = timezone(timedelta(hours=8))
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 
 def log(msg: str) -> None:
@@ -88,23 +91,24 @@ def load_sites() -> list[dict[str, Any]]:
       1) 环境变量 NEWAPI_SITES = JSON 数组
       2) config.json 的 sites 数组
       3) config.json 单站点对象（兼容旧格式）
-      4) 环境变量 CHSHAPI_* / SUDOBUG_* / SUDOBUG2_* / HCNSEC_* / HCNSEC2_*
+      4) 环境变量 CHSHAPI_* / SUDOBUG_* / HCNSEC_* / HCNSEC2_*
     """
     sites: list[dict[str, Any]] = []
-    # 同站多账号：SUDOBUG2 / HCNSEC2 等与主账号并列签到
     _PREFIX_SITES = (
         ("CHSHAPI", "https://api.chshapi.org", "chshapi"),
         ("SUDOBUG", "https://sudobug.top", "sudobug"),
-        ("SUDOBUG2", "https://sudobug.top", "sudobug2"),
         ("HCNSEC", "https://api.hcnsec.cn", "hcnsec"),
         ("HCNSEC2", "https://api.hcnsec.cn", "hcnsec2"),
     )
 
+    # NEWAPI_SITES 显式指定时，只跑这份列表（不再自动追加其它 Secrets 站点）
+    exclusive = False
     env_sites = os.environ.get("NEWAPI_SITES", "").strip()
     if env_sites:
         try:
             arr = json.loads(env_sites)
             if isinstance(arr, list):
+                exclusive = True
                 for i, item in enumerate(arr):
                     if isinstance(item, dict):
                         s = _normalize_site(item, default_name=f"site{i+1}")
@@ -147,7 +151,6 @@ def load_sites() -> list[dict[str, Any]]:
         if not ov:
             continue
         if name in by_name:
-            # secrets 优先覆盖 access_token/refresh
             cur = by_name[name]
             if ov.get("access_token"):
                 cur["access_token"] = ov["access_token"]
@@ -159,7 +162,7 @@ def load_sites() -> list[dict[str, Any]]:
                 cur["user_id"] = ov["user_id"]
             if ov.get("base_url"):
                 cur["base_url"] = ov["base_url"]
-        else:
+        elif not exclusive:
             sites.append(ov)
             by_name[name] = ov
 
@@ -261,7 +264,13 @@ class Client:
 
 
 def is_success(payload: dict | None) -> bool:
-    return isinstance(payload, dict) and payload.get("success") is True
+    if not isinstance(payload, dict):
+        return False
+    if payload.get("success") is True:
+        return True
+    if payload.get("success") is False:
+        return False
+    return isinstance(payload.get("data"), (dict, list)) and payload.get("_http") not in (401, 403)
 
 
 def already_checked(payload: dict | None) -> bool:
@@ -330,6 +339,8 @@ def persist_site_update(site_name: str, client: Client, long_token: str | None =
             }
         )
     root["sites"] = sites
+    if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
+        return
     try:
         _CONFIG_FILE.write_text(json.dumps(root, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         log("   已更新本地 config.json")
@@ -439,7 +450,9 @@ def checkin_one(site: dict[str, Any]) -> bool:
     uid = user.get("id")
     if uid is not None:
         client.user_id = str(uid)
-    log(f"   登录用户: id={uid}, username={user.get('username')}")
+        log(
+            f"   登录用户: id={uid}, username={user.get('username') or user.get('display_name')}"
+        )
 
     month = datetime.now(_TZ).strftime("%Y-%m")
     status_path = "/api/user/checkin?" + urllib.parse.urlencode({"month": month})
@@ -486,7 +499,7 @@ def request_with_user_header(
 def main() -> int:
     sites = load_sites()
     if not sites:
-        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_*/SUDOBUG2_*/HCNSEC_*/HCNSEC2_* / NEWAPI_SITES")
+        log("[x] 未配置任何站点。请在 config.json 的 sites 中配置，或设置 CHSHAPI_*/SUDOBUG_*/HCNSEC_*/HCNSEC2_* / NEWAPI_SITES")
         return 1
 
     log(f"共 {len(sites)} 个站点待签到: {', '.join(s['name'] for s in sites)}")
@@ -499,10 +512,23 @@ def main() -> int:
     log("=" * 56)
     log("汇总:")
     failed = 0
+    lines = []
     for name, ok in results:
-        log(f"  - {name}: {'OK' if ok else 'FAIL'}")
+        status = "OK" if ok else "FAIL"
+        log(f"  - {name}: {status}")
+        lines.append(f"{name}: {status}")
         if not ok:
             failed += 1
+    if failed:
+        try:
+            from notify import send_failure_mail
+
+            send_failure_mail(
+                f"NewAPI 签到失败 ({failed}/{len(results)})",
+                "以下站点签到结果：\n" + "\n".join(lines),
+            )
+        except Exception as e:
+            log(f"[!] 失败邮件未发送: {e}")
     return 1 if failed else 0
 
 

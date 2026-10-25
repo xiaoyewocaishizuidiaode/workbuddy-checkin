@@ -30,4 +30,12 @@ jobs:
           WORKBUDDY_UID: ${{ secrets.WORKBUDDY_UID }}
           WORKBUDDY_DOMAIN: ${{ secrets.WORKBUDDY_DOMAIN }}
           WORKBUDDY_ENTERPRISE_ID: ${{ secrets.WORKBUDDY_ENTERPRISE_ID }}
+          WORKBUDDY_REFRESH_TOKEN: ${{ secrets.WORKBUDDY_REFRESH_TOKEN }}
+          NOTIFY_ON_FAILURE: ${{ secrets.NOTIFY_ON_FAILURE }}
+          NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
         run: python checkin.py

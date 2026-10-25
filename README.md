@@ -1,6 +1,8 @@
 # WorkBuddy 云端每日签到
 
-用 **GitHub Actions** 每天定时调用 WorkBuddy 签到接口。纯 Python 标准库，无第三方依赖，**不含微信推送**。
+用 **GitHub Actions** 每天定时调用 WorkBuddy 签到接口。纯 Python 标准库，无第三方依赖。
+
+成功默认不发邮件。失败时：GitHub 会按仓库通知设置发失败邮件；若另外配置了 SMTP Secrets，脚本也会再发一封失败邮件。
 
 ## 文件说明
 
@@ -63,6 +65,8 @@ python checkin.py
 | `WORKBUDDY_UID` | 建议 | `account.uid` |
 | `WORKBUDDY_DOMAIN` | 否 | 默认 `www.codebuddy.cn` |
 | `WORKBUDDY_ENTERPRISE_ID` | 否 | 企业账号才需要 |
+| `WORKBUDDY_REFRESH_TOKEN` | 建议 | 本地 auth 里的 `refreshToken`，用于自动续期 |
+| `NOTIFY_EMAIL_TO` / `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | 否 | 仅失败发信；不配则只走 GitHub 失败通知 |
 
 ### 3.3 手动跑一次
 

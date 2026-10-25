@@ -5,12 +5,11 @@
 | 站点 | 地址 | 说明 |
 |------|------|------|
 | chshapi | https://api.chshapi.org | 新版鉴权，长期 access_token |
-| sudobug | https://sudobug.top | 旧版，需 access_token + user_id |
-| sudobug2 | https://sudobug.top | 同站第二账号，Secrets 用 `SUDOBUG2_*` |
+| sudobug | https://sudobug.top | 仅一个账号，需 access_token + user_id |
 | hcnsec | https://api.hcnsec.cn | 旧版，需 access_token + user_id |
 | hcnsec2 | https://api.hcnsec.cn | 同站第二账号，Secrets 用 `HCNSEC2_*` |
 
-均已确认 `checkin_enabled=true`。同一站点可配多个账号（如 sudobug / sudobug2）。
+均已确认 `checkin_enabled=true`。hcnsec 仍可配第二账号（`HCNSEC2_*`）。
 
 ## 获取凭证（每个站各做一次）
 
@@ -35,8 +34,7 @@ python chshapi/checkin.py
 | Secret | 站点 |
 |--------|------|
 | `CHSHAPI_ACCESS_TOKEN` | chshapi |
-| `SUDOBUG_ACCESS_TOKEN` / `SUDOBUG_USER_ID` | sudobug 账号1 |
-| `SUDOBUG2_ACCESS_TOKEN` / `SUDOBUG2_USER_ID` | sudobug 账号2 |
+| `SUDOBUG_ACCESS_TOKEN` / `SUDOBUG_USER_ID` | sudobug |
 | `HCNSEC_ACCESS_TOKEN` / `HCNSEC_USER_ID` | hcnsec 账号1 |
 | `HCNSEC2_ACCESS_TOKEN` / `HCNSEC2_USER_ID` | hcnsec 账号2 |
 | `NEWAPI_SITES` | 可选，整份 JSON 覆盖 |
